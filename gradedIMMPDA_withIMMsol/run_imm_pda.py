@@ -20,34 +20,17 @@ import estimationstatistics as estats
 
 # %% plot config check and style setup
 
-
 # to see your plot config
 print(f"matplotlib backend: {matplotlib.get_backend()}")
 print(f"matplotlib config file: {matplotlib.matplotlib_fname()}")
 print(f"matplotlib config dir: {matplotlib.get_configdir()}")
 plt.close("all")
 
-# try to set separate window ploting
-if "inline" in matplotlib.get_backend():
-    print("Plotting is set to inline at the moment:", end=" ")
-
-    if "ipykernel" in matplotlib.get_backend():
-        print("backend is ipykernel (IPython?)")
-        print("Trying to set backend to separate window:", end=" ")
-        import IPython
-
-        IPython.get_ipython().run_line_magic("matplotlib", "")
-    else:
-        print("unknown inline backend")
-
-print("continuing with this plotting backend", end="\n\n\n")
-
-
 # set styles
 try:
     # installed with "pip install SciencePLots" (https://github.com/garrettj403/SciencePlots.git)
     # gives quite nice plots
-    plt_styles = ["science", "grid", "bright", "no-latex"]
+    plt_styles = ["science", "grid", "ieee", "bright", "no-latex"]
     plt.style.use(plt_styles)
     print(f"pyplot using style set {plt_styles}")
 except Exception as e:
