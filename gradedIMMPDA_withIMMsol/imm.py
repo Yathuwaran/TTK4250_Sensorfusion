@@ -265,7 +265,6 @@ class IMM(Generic[MT]):
             - reduce self.filter[s].reduce_mixture for each s
         """
 
-        raise NotImplementedError  # TODO remove this when done
 
         # extract probabilities as array
         ## eg. association weights/beta: Pr(a)
