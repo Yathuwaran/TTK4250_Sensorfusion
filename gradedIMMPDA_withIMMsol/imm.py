@@ -292,7 +292,7 @@ class IMM(Generic[MT]):
                 imm_component.components[s] 
                 for imm_component in immstate_mixture.components
             ]
-            flipped_mixture_components.append( MixtureParameters(probs_a_cond_s, components_across_a) )
+            flipped_mixture_components.append( MixtureParameters(prob_a_cond_s, components_across_a) )
 
         mode_states: List[GaussParams] = [ 
             self.filters[s].reduce_mixture(mixture_params) 
