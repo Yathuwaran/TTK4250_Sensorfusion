@@ -264,16 +264,17 @@ class IMM(Generic[MT]):
         """
 
         raise NotImplementedError  # TODO remove this when done
+
         # extract probabilities as array
         ## eg. association weights/beta: Pr(a)
-        weights = immstate_mixture.weights
+        weights = immstate_mixture.weights  # Pr{a | Z_1:k}
         ## eg. the association conditioned mode probabilities element [j, s] is for association j and mode s: Pr(s | a = j)
         component_conditioned_mode_prob = np.array(
-            [c.weights.ravel() for c in immstate_mixture.components]
+            [c.weights.ravel() for c in immstate_mixture.components]        # Pr{s | a}
         )
 
         # flip conditioning order with Bayes to get Pr(s), and Pr(a | s)
-        mode_prob, mode_conditioned_component_prob = None  # TODO
+        mode_prob, mode_conditioned_component_prob = discretebayes.discrete_bayes(weights, component_conditioned_mode_prob)
 
         # We need to gather all the state parameters from the associations for mode s into a
         # single list in order to reduce it to a single parameter set.
@@ -281,7 +282,22 @@ class IMM(Generic[MT]):
         # into a single list and append the result of self.filters[s].reduce_mixture
         # The mode s for association j should be available as imm_mixture.components[j].components[s]
 
-        mode_states: List[GaussParams] = None  # TODO
+        
+
+        num_modes = len(self.filters)
+        flipped_mixture_components = []
+
+        for (s, prob_a_cond_s) in zip(range(num_modes), mode_conditioned_component_prob):
+            components_across_a = [
+                imm_component.components[s] 
+                for imm_component in immstate_mixture.components
+            ]
+            flipped_mixture_components.append( MixtureParameters(probs_a_cond_s, components_across_a) )
+
+        mode_states: List[GaussParams] = [ 
+            self.filters[s].reduce_mixture(mixture_params) 
+            for (s, mixture_params) in zip(range(num_modes), flipped_mixture_components) 
+        ]
 
         immstate_reduced = MixtureParameters(mode_prob, mode_states)
 
@@ -311,7 +327,7 @@ class IMM(Generic[MT]):
         for mode in immstate.components:
             mode_gated.append( self.filters[0].gate(z, mode, gate_size_square, sensor_state=sensor_state) )
 
-        gated: bool = np.any(mode_gated)  # TODO: check if _any_ of the modes gated the measurement
+        gated: bool = np.any(mode_gated)  # Check if _any_ of the modes gated the measurement
         return gated
 
     def NISes(
