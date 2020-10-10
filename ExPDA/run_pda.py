@@ -96,7 +96,7 @@ ax1.set_title("True trajectory and the nearby measurements")
 # console to make it external
 # Remember that you can exit the figure.
 # comment this out when you are
-play_movie = True
+play_movie = False
 
 if play_movie:
     fig2, ax2 = plt.subplots(num=2, clear=True)
@@ -141,7 +141,8 @@ P_bar_init = np.zeros((4, 4))
 P_bar_init[[0, 1], [0, 1]] = 2 * sigma_z ** 2
 P_bar_init[[2, 3], [2, 3]] = 20 ** 2
 
-init_state = tracker.init_filter_state({"mean": x_bar_init, "cov": P_bar_init})
+#init_state = tracker.init_filter_state({"mean": x_bar_init, "cov": P_bar_init})
+init_state = GaussParams(x_bar_init, P_bar_init)
 
 tracker_update = init_state
 tracker_update_list = []
