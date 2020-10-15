@@ -119,26 +119,22 @@ if play_movie:
 
 # %% IMM-PDA
 
-# THE PRESET PARAMETERS AND INITIAL VALUES WILL CAUSE TRACK LOSS!
-# Some reasoning and previous exercises should let you avoid track loss.
-# No exceptions should be generated if PDA works correctly with IMM,
-# but no exceptions do not guarantee correct implementation.
 
 # sensor
-sigma_z = 10
-clutter_intensity = 1e-5        # Sjekk diskusjonsforum for hvordan velge
+sigma_z = 15
+clutter_intensity = 1e-5       # Sjekk diskusjonsforum for hvordan velge
 PD = 0.9
-gate_size = 5
+gate_size = 3
 
 # dynamic models
-sigma_a_CV = 0.5
-sigma_a_CT = 0.5
-sigma_omega = 0.3
+sigma_a_CV = 1
+sigma_a_CT = 2
+sigma_omega = 0.008
 
 
 # markov chain
-PI11 = 0.8
-PI22 = 0.6
+PI11 = 0.925
+PI22 = 0.95
 
 p10 = 0.95  # initvalue for mode probabilities
 
@@ -240,6 +236,7 @@ axs3[1].plot(np.arange(K) * T_mean, prob_hat)
 axs3[1].set_ylim([0, 1])
 axs3[1].set_ylabel("mode probability")
 axs3[1].set_xlabel("time")
+axs3[1].legend()
 
 # NEES
 fig4, axs4 = plt.subplots(3, sharex=True, num=4, clear=True)

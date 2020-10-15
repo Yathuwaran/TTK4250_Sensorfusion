@@ -125,28 +125,28 @@ if play_movie:
 # but no exceptions do not guarantee correct implementation.
 
 # sensor
-sigma_z = 10
+sigma_z = 15
 clutter_intensity = 1e-5        # Sjekk diskusjonsforum for hvordan velge
 PD = 0.9
-gate_size = 5
+gate_size = 3
 
 # dynamic models
-sigma_a_CV = 0.01
-sigma_a_CV_high = 4
-sigma_a_CT = 0.01
-sigma_omega = 0.2
+sigma_a_CV = 0.4
+sigma_a_CT = 2
+sigma_omega = 0.008
+sigma_a_CV_high = 5
 
 
 # markov chain
-PI11 = 0.7
-PI13 = 0.025
+PI11 = 0.88
+PI13 = 0.1
 PI22 = 0.97
 PI23 = 0.01
-PI33 = 0.7 
-PI31 = 0.025
+PI33 = 0.92 
+PI31 = 0.06
 
-p10 = 0.95  # initvalue for mode probabilities
-p20 = 0.025
+p10 = 0.90  # initvalue for mode probabilities
+p20 = 0
 p30 = 1 - p10 - p20
 
 PI = np.array([[PI11, (1 - (PI11 + PI13)), PI13], [(1 - (PI22 + PI23)), PI22, PI23], [PI31, 1 - (PI31 + PI33), PI33]])
