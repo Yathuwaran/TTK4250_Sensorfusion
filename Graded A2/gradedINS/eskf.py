@@ -663,7 +663,7 @@ class ESKF:
         
         quaternion_conj = np.hstack([q_n[0],-q_n[1:]])  # Done: Conjugate of quaternion
 
-        delta_quaternion = np.linalg.norm(quaternion_product(quaternion_conj,q_true))  # TODO: Error quaternion
+        delta_quaternion = quaternion_product(quaternion_conj,q_true)/np.linalg.norm(quaternion_product(quaternion_conj,q_true))  # Done: Error quaternion
         delta_theta = 2*delta_quaternion[1:] #Done
 
         # Concatenation of bias indices
@@ -705,11 +705,11 @@ class ESKF:
         d_x = cls.delta_x(x_nominal, x_true)
 
         NEES_all = d_x.T @ np.linalg.inv(P) @ d_x
-        NEES_pos = d_x[0:3].T @ np.linalg.inv(P[0:3,0:3]) @ d_x[0:3]  # TODO: NEES position
-        NEES_vel = d_x[3:6].T @ np.linalg.inv(P[3:6,3:6]) @ d_x[3:6]  # TODO: NEES velocity
-        NEES_att = d_x[6:9].T @ np.linalg.inv(P[6:9,6:9]) @ d_x[6:9]  # TODO: NEES attitude
-        NEES_accbias = d_x[9:12].T @ np.linalg.inv(P[9:12,9:12]) @ d_x[9:12]  # TODO: NEES accelerometer bias
-        NEES_gyrobias = d_x[12:].T @ np.linalg.inv(P[12:,12:]) @ d_x[12:]  # TODO: NEES gyroscope bias
+        NEES_pos = d_x[0:3].T @ np.linalg.inv(P[0:3,0:3]) @ d_x[0:3]  # Done: NEES position
+        NEES_vel = d_x[3:6].T @ np.linalg.inv(P[3:6,3:6]) @ d_x[3:6]  # Done: NEES velocity
+        NEES_att = d_x[6:9].T @ np.linalg.inv(P[6:9,6:9]) @ d_x[6:9]  # Done: NEES attitude
+        NEES_accbias = d_x[9:12].T @ np.linalg.inv(P[9:12,9:12]) @ d_x[9:12]  # Done: NEES accelerometer bias
+        NEES_gyrobias = d_x[12:].T @ np.linalg.inv(P[12:,12:]) @ d_x[12:]  # Done: NEES gyroscope bias
 
         NEESes = np.array(
             [NEES_all, NEES_pos, NEES_vel, NEES_att, NEES_accbias, NEES_gyrobias]
