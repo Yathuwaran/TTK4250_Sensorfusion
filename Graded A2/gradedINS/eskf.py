@@ -179,13 +179,13 @@ class ESKF:
         A = np.zeros((15, 15))
 
         # Set submatrices
-        A[POS_IDX * VEL_IDX] = np.zeros((3,))
-        A[VEL_IDX * ERR_ATT_IDX] = np.zeros((3,))
-        A[VEL_IDX * ERR_ACC_BIAS_IDX] = np.zeros((3,))
-        A[ERR_ATT_IDX * ERR_ATT_IDX] = np.zeros((3,))
-        A[ERR_ATT_IDX * ERR_GYRO_BIAS_IDX] = np.zeros((3,))
-        A[ERR_ACC_BIAS_IDX * ERR_ACC_BIAS_IDX] = np.zeros((3,))
-        A[ERR_GYRO_BIAS_IDX * ERR_GYRO_BIAS_IDX] = np.zeros((3,))
+        A[POS_IDX * VEL_IDX] = np.eye(3)
+        A[VEL_IDX * ERR_ATT_IDX] = -R @ cross_product_matrix(acceleration - x_nominal[ACC_BIAS_IDX])
+        A[VEL_IDX * ERR_ACC_BIAS_IDX] = -R
+        A[ERR_ATT_IDX * ERR_ATT_IDX] = -cross_product_matrix(omega - x_nominal[GYRO_BIAS_IDX])
+        A[ERR_ATT_IDX * ERR_GYRO_BIAS_IDX] = -np.eye(3)
+        A[ERR_ACC_BIAS_IDX * ERR_ACC_BIAS_IDX] = -self.p_acc * np.eye(3)
+        A[ERR_GYRO_BIAS_IDX * ERR_GYRO_BIAS_IDX] = -self.p_gyro * np.eye(3)
 
         # Bias correction
         A[VEL_IDX * ERR_ACC_BIAS_IDX] = A[VEL_IDX * ERR_ACC_BIAS_IDX] @ self.S_a
@@ -219,6 +219,8 @@ class ESKF:
         R = quaternion_to_rotation_matrix(x_nominal[ATT_IDX], debug=self.debug)
 
         G = np.zeros((15, 12))
+        G = la.block_diag(-R, -np.eye(3), np.eye(3), np.eye(3))
+        G = np.vstack((np.zeros((3,12), G)))
 
         assert G.shape == (15, 12), f"ESKF.Gerr: G-matrix shape incorrect {G.shape}"
         return G
