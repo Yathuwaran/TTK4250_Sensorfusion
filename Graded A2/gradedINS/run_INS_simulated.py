@@ -171,17 +171,17 @@ x_pred[0, VEL_IDX] = np.array([20, 0, 0])  # starting at 20 m/s due north
 x_pred[0, 6] = 1  # no initial rotation: nose to North, right to East, and belly down
 
 # These have to be set reasonably to get good results
-P_pred[0][POS_IDX ** 2] = np.eye(3)
-P_pred[0][VEL_IDX ** 2] = np.eye(3)
-P_pred[0][ERR_ATT_IDX ** 2] = np.eye(3)
-P_pred[0][ERR_ACC_BIAS_IDX ** 2] = np.eye(3) 
-P_pred[0][ERR_GYRO_BIAS_IDX ** 2] = np.eye(3)
+P_pred[0][POS_IDX **2]           =  10**2 * np.eye(3)
+P_pred[0][VEL_IDX **2]           =  10**2 * np.eye(3)
+P_pred[0][ERR_ATT_IDX **2]       = (10*180/np.pi)**2 * np.eye(3)  #error rotation vector
+P_pred[0][ERR_ACC_BIAS_IDX **2]  =  0.2**2 * np.eye(3)
+P_pred[0][ERR_GYRO_BIAS_IDX **2] =  0.2**2 * np.eye(3)
 
 
 # %% Run estimation
 # run this file with 'python -O run_INS_simulated.py' to turn of assertions and get about 8/5 speed increase for longer runs
 
-N: int = 500 # TODO: Increase this as we get better results
+N: int = 1000 # TODO: Increase this as we get better results
 doGNSS: bool = True  # TODO: Set this to False if you want to check that the predictions make sense over reasonable time lenghts
 
 GNSSk: int = 0  # keep track of current step in GNSS measurements
