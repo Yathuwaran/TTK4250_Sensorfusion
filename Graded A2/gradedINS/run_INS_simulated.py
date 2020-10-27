@@ -117,22 +117,27 @@ cont_acc_noise_std = 1.167e-3  # (m/s**2)/sqrt(Hz)
 # Discrete sample noise at simulation rate used
 rate_std = 0.5 * cont_gyro_noise_std * np.sqrt(1 / dt)
 acc_std = 0.5 * cont_acc_noise_std * np.sqrt(1 / dt)
+#rate_std =  cont_gyro_noise_std**2 * (1 / dt)
+#acc_std =  cont_acc_noise_std**2 * (1 / dt)
 
 # Bias values
-rate_bias_driving_noise_std = 5e-5
+rate_bias_driving_noise_std = 4e-6 
 cont_rate_bias_driving_noise_std = (
     (1 / 3) * rate_bias_driving_noise_std / np.sqrt(1 / dt)
 )
 
-acc_bias_driving_noise_std = 4e-3
+acc_bias_driving_noise_std = 2e-2
 cont_acc_bias_driving_noise_std = 6 * acc_bias_driving_noise_std / np.sqrt(1 / dt)
 
 # Position and velocity measurement
-p_std = np.array([0.3, 0.3, 0.5])  # Measurement noise
+p_std = np.array([0.4, 0.40, 0.6])  # Measurement noise
 R_GNSS = np.diag(p_std ** 2)
 
-p_acc = 1e-16
-p_gyro = 1e-16
+p_acc = 1e-13
+
+p_gyro = 1e-13
+
+
 
 # %% Estimator
 eskf = ESKF(
@@ -144,7 +149,7 @@ eskf = ESKF(
     p_gyro,
     S_a=S_a, # set the accelerometer correction matrix
     S_g=S_g, # set the gyro correction matrix,
-    debug=True # TODO: False to avoid expensive debug checks, can also be suppressed by calling 'python -O run_INS_simulated.py'
+    debug=False # TODO: False to avoid expensive debug checks, can also be suppressed by calling 'python -O run_INS_simulated.py'
 )
 
 # %% Allocate
@@ -171,17 +176,17 @@ x_pred[0, VEL_IDX] = np.array([20, 0, 0])  # starting at 20 m/s due north
 x_pred[0, 6] = 1  # no initial rotation: nose to North, right to East, and belly down
 
 # These have to be set reasonably to get good results
-P_pred[0][POS_IDX **2]           =  10**2 * np.eye(3)
-P_pred[0][VEL_IDX **2]           =  10**2 * np.eye(3)
-P_pred[0][ERR_ATT_IDX **2]       = (10*180/np.pi)**2 * np.eye(3)  #error rotation vector
-P_pred[0][ERR_ACC_BIAS_IDX **2]  =  0.2**2 * np.eye(3)
-P_pred[0][ERR_GYRO_BIAS_IDX **2] =  0.2**2 * np.eye(3)
+P_pred[0][POS_IDX ** 2] = 0.3*np.sqrt(R_GNSS)# TODO
+P_pred[0][VEL_IDX ** 2] = 20*acc_std*np.eye(3)# TODO
+P_pred[0][ERR_ATT_IDX ** 2] = 2*np.pi/180*np.eye(3)# TODO # error rotation vector (not quat)
+P_pred[0][ERR_ACC_BIAS_IDX ** 2] = 0.5*acc_bias_driving_noise_std*np.eye(3)# TODO
+P_pred[0][ERR_GYRO_BIAS_IDX ** 2] = 0.5*rate_bias_driving_noise_std*np.eye(3)# TODO
 
 
 # %% Run estimation
 # run this file with 'python -O run_INS_simulated.py' to turn of assertions and get about 8/5 speed increase for longer runs
 
-N: int = 1000 # TODO: Increase this as we get better results
+N: int = steps # TODO: Increase this as we get better results
 doGNSS: bool = True  # TODO: Set this to False if you want to check that the predictions make sense over reasonable time lenghts
 
 GNSSk: int = 0  # keep track of current step in GNSS measurements
@@ -210,7 +215,8 @@ for k in tqdm(range(N)):
     ) = eskf.NEESes(x_est[k], P_est[k], x_true[k]) # TODO: The true error state at step k
 
     if k < N - 1:
-        x_pred[k + 1], P_pred[k + 1] = eskf.predict(x_est[k], P_est[k], z_acceleration[k+1], z_gyroscope[k+1], dt) # TODO: Hint: measurements come from the the present and past, not the future
+        Ts = timeIMU[k+1] - timeIMU[k]
+        x_pred[k + 1], P_pred[k + 1] = eskf.predict(x_est[k], P_est[k], z_acceleration[k], z_gyroscope[k], Ts) # TODO: Hint: measurements come from the the present and past, not the future
 
     if eskf.debug:
         assert np.all(np.isfinite(P_pred[k])), f"Not finite P_pred at index {k + 1}"
@@ -229,6 +235,7 @@ ax.set_ylabel("North [m]")
 ax.set_zlabel("Altitude [m]")
 ax.legend()
 
+#%%
 
 # state estimation
 t = np.linspace(0, dt * (N - 1), N)

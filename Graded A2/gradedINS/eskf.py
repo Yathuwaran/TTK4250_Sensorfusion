@@ -11,7 +11,7 @@ from quaternion import (
     quaternion_product,
     quaternion_to_euler,
     quaternion_to_rotation_matrix,
-    quaternion_conjugate,
+    
 )
 
 # from state import NominalIndex, ErrorIndex
@@ -124,13 +124,13 @@ class ESKF:
             np.array([np.cos(norm_kappa / 2.0)]), 
             np.sin(norm_kappa / 2.0) * kappa.T / norm_kappa
         ])
-        quaternion_prediction = quaternion_product(quaternion, e)
+        quaternion_prediction = 0.5*quaternion_product(quaternion, e)
 
         # Normalize quaternion
         quaternion_prediction = quaternion_prediction / np.linalg.norm(quaternion_prediction)
 
-        acceleration_bias_prediction = acceleration_bias - self.p_acc * acceleration_bias
-        gyroscope_bias_prediction = gyroscope_bias - self.p_gyro * gyroscope_bias
+        acceleration_bias_prediction = acceleration_bias - self.p_acc * acceleration_bias*Ts
+        gyroscope_bias_prediction = gyroscope_bias - self.p_gyro * np.eye(np.size(gyroscope_bias)) @ gyroscope_bias * Ts
 
         x_nominal_predicted = np.concatenate(
             (
@@ -425,12 +425,12 @@ class ESKF:
         x_injected[0:6] += delta_x[0:6]  # Inject error state into nominal state (except attitude \ quaternion)
         x_injected[10:] += delta_x[9:]
 
-        x_injected[6:10] = quaternion_product(x_injected[6:10],np.hstack([1,0.5*delta_x[6:9]])) # Inject attitude according to 10.72
-        x_injected[6:10] = x_injected[6:10]/np.linalg.norm(x_injected[6:10]) # Normalize quaternion
+        x_injected[ATT_IDX] = quaternion_product(x_injected[ATT_IDX],np.hstack([1,0.5*delta_x[ERR_ATT_IDX]])) # Inject attitude according to 10.72
+        x_injected[ATT_IDX] = x_injected[ATT_IDX]/np.linalg.norm(x_injected[ATT_IDX]) # Normalize quaternion
 
         # Covariance
         G_injected = np.eye(15)  # Done: Compensate for injection in the covariances
-        G_injected[6:9,6:9] = np.eye(3) - cross_product_matrix(0.5*delta_x[6:9])
+        G_injected[6:9,6:9] = np.eye(3) - cross_product_matrix(0.5*delta_x[ERR_ATT_IDX])
         P_injected = G_injected @ P @ G_injected.T # Done: Compensate for injection in the covariances
 
         assert x_injected.shape == (
@@ -621,7 +621,7 @@ class ESKF:
             x_nominal, P, z_GNSS_position, R_GNSS, lever_arm
         )
 
-        NIS = v.T @ np.linalg.inv(S) @ v #Done
+        NIS = v.T @ np.linalg.solve(S,v) #Done
 
         assert NIS >= 0, "EKSF.NIS_GNSS_positionNIS: NIS not positive"
 
@@ -649,8 +649,8 @@ class ESKF:
             16,
         ), f"ESKF.delta_x: x_true shape incorrect {x_true.shape}"
 
-        delta_position = x_true[0:3]-x_nominal[0:3]  # Done: Delta position
-        delta_velocity = x_true[3:6]-x_nominal[3:6]  # Done: Delta velocity
+        delta_position = x_true[POS_IDX]-x_nominal[POS_IDX]  # Done: Delta position
+        delta_velocity = x_true[VEL_IDX]-x_nominal[VEL_IDX]  # Done: Delta velocity
 
         q_true = x_true[6:10]
         q_n = x_nominal[6:10]
@@ -713,6 +713,6 @@ class ESKF:
 
     @classmethod
     def _NEES(cls, diff, P):
-        NEES = diff @ la.solve(P, diff)
+        NEES = diff @ la.inv(P) @ diff
         assert NEES >= 0, "ESKF._NEES: negative NEES"
         return NEES

@@ -39,7 +39,7 @@ def quaternion_product(ql: np.ndarray, qr: np.ndarray) -> np.ndarray:
     second = np.zeros((4,4))
     second[0,1:4] = -epsilon_left.T
     second[1:4,0:1] = epsilon_left
-    second[1:4,1:4] = -utils.cross_product_matrix(epsilon_left)
+    second[1:4,1:4] = utils.cross_product_matrix(epsilon_left)
     
     quaternion = np.array(eta_left*np.eye(4)+second) @ q_right
 
