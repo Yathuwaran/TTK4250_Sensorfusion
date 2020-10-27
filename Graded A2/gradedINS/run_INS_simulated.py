@@ -109,8 +109,8 @@ gnss_steps = len(z_GNSS)
 
 # %% Measurement noise
 # IMU noise values for STIM300, based on datasheet and simulation sample rate
+
 # Continous noise
-# TODO: What to remove here?
 cont_gyro_noise_std = 4.36e-5  # (rad/s)/sqrt(Hz)
 cont_acc_noise_std = 1.167e-3  # (m/s**2)/sqrt(Hz)
 
@@ -132,7 +132,6 @@ p_std = np.array([0.3, 0.3, 0.5])  # Measurement noise
 R_GNSS = np.diag(p_std ** 2)
 
 p_acc = 1e-16
-
 p_gyro = 1e-16
 
 # %% Estimator
@@ -145,7 +144,7 @@ eskf = ESKF(
     p_gyro,
     S_a=S_a, # set the accelerometer correction matrix
     S_g=S_g, # set the gyro correction matrix,
-    debug=False # TODO: False to avoid expensive debug checks, can also be suppressed by calling 'python -O run_INS_simulated.py'
+    debug=True # TODO: False to avoid expensive debug checks, can also be suppressed by calling 'python -O run_INS_simulated.py'
 )
 
 # %% Allocate
@@ -172,25 +171,23 @@ x_pred[0, VEL_IDX] = np.array([20, 0, 0])  # starting at 20 m/s due north
 x_pred[0, 6] = 1  # no initial rotation: nose to North, right to East, and belly down
 
 # These have to be set reasonably to get good results
-P_pred[0][POS_IDX ** 2] = 10**2 * np.eye(3)
-P_pred[0][VEL_IDX ** 2] = 10**2 * np.eye(3)
+P_pred[0][POS_IDX ** 2] = np.eye(3)
+P_pred[0][VEL_IDX ** 2] = np.eye(3)
 P_pred[0][ERR_ATT_IDX ** 2] = np.eye(3)
-P_pred[0][ERR_ACC_BIAS_IDX ** 2] = 0.01 * np.eye(3) 
-P_pred[0][ERR_GYRO_BIAS_IDX ** 2] = 0.01 * np.eye(3)
+P_pred[0][ERR_ACC_BIAS_IDX ** 2] = np.eye(3) 
+P_pred[0][ERR_GYRO_BIAS_IDX ** 2] = np.eye(3)
 
-# %% Test: you can run this cell to test your implementation
-dummy = eskf.predict(x_pred[0], P_pred[0], z_acceleration[0], z_gyroscope[0], dt)
-dummy = eskf.update_GNSS_position(x_pred[0], P_pred[0], z_GNSS[0], R_GNSS, lever_arm)
+
 # %% Run estimation
 # run this file with 'python -O run_INS_simulated.py' to turn of assertions and get about 8/5 speed increase for longer runs
 
 N: int = 500 # TODO: Increase this as we get better results
-doGNSS: bool = False  # TODO: Set this to False if you want to check that the predictions make sense over reasonable time lenghts
+doGNSS: bool = True  # TODO: Set this to False if you want to check that the predictions make sense over reasonable time lenghts
 
 GNSSk: int = 0  # keep track of current step in GNSS measurements
 for k in tqdm(range(N)):
     if doGNSS and timeIMU[k] >= timeGNSS[GNSSk]:
-        NIS[GNSSk] = eskf.NIS_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm)
+        NIS[GNSSk] = eskf.NIS_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm=lever_arm)
 
         x_est[k], P_est[k] = eskf.update_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm)
 
@@ -224,11 +221,13 @@ for k in tqdm(range(N)):
 fig1 = plt.figure(1)
 ax = plt.axes(projection="3d")
 
-ax.plot3D(x_est[:N, 1], x_est[:N, 0], -x_est[:N, 2])
-ax.plot3D(z_GNSS[:GNSSk, 1], z_GNSS[:GNSSk, 0], -z_GNSS[:GNSSk, 2])
+ax.plot3D(x_est[:N, 1], x_est[:N, 0], -x_est[:N, 2], label="Estimate")
+ax.plot3D(x_true[:N, 1], x_true[:N, 0], -x_true[:N, 2], label="Ground Truth")
+ax.plot3D(z_GNSS[:GNSSk, 1], z_GNSS[:GNSSk, 0], -z_GNSS[:GNSSk, 2], label="GNSS")
 ax.set_xlabel("East [m]")
 ax.set_ylabel("North [m]")
 ax.set_zlabel("Altitude [m]")
+ax.legend()
 
 
 # state estimation
@@ -327,10 +326,10 @@ fig3.suptitle("States estimate errors")
 fig4, axs4 = plt.subplots(2, 1, num=4, clear=True)
 
 axs4[0].plot(t, np.linalg.norm(delta_x[:N, POS_IDX], axis=1))
-axs4[0].plot(
-    np.arange(0, N, 100) * dt,
-    np.linalg.norm(x_true[99:100:N, :3] - z_GNSS[:GNSSk], axis=1),
-)
+#axs4[0].plot(
+#    np.arange(0, N, 100) * dt,
+#    np.linalg.norm(x_true[99:100:N, :3] - z_GNSS[:GNSSk], axis=1),
+#)
 axs4[0].set(ylabel="Position error [m]")
 axs4[0].legend(
     [

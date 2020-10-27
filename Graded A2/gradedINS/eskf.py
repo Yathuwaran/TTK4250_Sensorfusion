@@ -11,10 +11,13 @@ from quaternion import (
     quaternion_product,
     quaternion_to_euler,
     quaternion_to_rotation_matrix,
+    quaternion_conjugate,
 )
 
 # from state import NominalIndex, ErrorIndex
-from utils import cross_product_matrix
+from utils import (
+    cross_product_matrix
+)
 
 
 # %% indices
@@ -73,16 +76,13 @@ class ESKF:
         Ts: float,
     ) -> np.ndarray:
         """Discrete time prediction, equation (10.58)
-
         Args:
             x_nominal (np.ndarray): The nominal state to predict, shape (16,)
             acceleration (np.ndarray): The estimated acceleration in body for the predicted interval, shape (3,)
             omega (np.ndarray): The estimated rotation rate in body for the prediction interval, shape (3,)
             Ts (float): The sampling time
-
         Raises:
             AssertionError: If any input is of the wrong shape, and if debug mode is on, certain numeric properties
-
         Returns:
             np.ndarray: The predicted nominal state, shape (16,)
         """
@@ -114,17 +114,17 @@ class ESKF:
 
         R = quaternion_to_rotation_matrix(quaternion, debug=self.debug)
         
-        acceleration = R @ acceleration
+        acceleration = R @ acceleration + self.g
         position_prediction = position + Ts * velocity + Ts**2 / 2 * acceleration
         velocity_prediction = velocity + Ts * acceleration
 
-        omega = R @ omega
         kappa = Ts * omega
         norm_kappa = np.linalg.norm(kappa)
-        e = np.hstack([np.array([
-            np.cos(norm_kappa / 2.0)]), np.sin(norm_kappa / 2.0) * kappa.T / norm_kappa]
-        )
-        quaternion_prediction = quaternion_product(quaternion, e)  # TODO Might have to remove transpose
+        e = np.hstack([
+            np.array([np.cos(norm_kappa / 2.0)]), 
+            np.sin(norm_kappa / 2.0) * kappa.T / norm_kappa
+        ])
+        quaternion_prediction = quaternion_product(quaternion, e)
 
         # Normalize quaternion
         quaternion_prediction = quaternion_prediction / np.linalg.norm(quaternion_prediction)
@@ -232,16 +232,13 @@ class ESKF:
         Ts: float,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculate the discrete time linearized error state transition and covariance matrix.
-
         Args:
             x_nominal (np.ndarray): The nominal state, shape (16,)
             acceleration (np.ndarray): The estimated acceleration in body for the prediction interval, shape (3,)
             omega (np.ndarray): The estimated rotation rate in body for the prediction interval, shape (3,)
             Ts (float): The sampling time
-
         Raises:
             AssertionError: If any input is of the wrong shape, and if debug mode is on, certain numeric properties
-
         Returns:
             Tuple[np.ndarray, np.ndarray]: Discrete error matrices Tuple(Ad, GQGd)
                 Ad: The discrete time error state system matrix, shape (15, 15)
@@ -261,18 +258,19 @@ class ESKF:
         A = self.Aerr(x_nominal, acceleration, omega)
         G = self.Gerr(x_nominal)
 
-        V = np.vstack([np.hstack([-A,G@self.Q_err@G.T]),np.hstack([np.zeros((15,15)),A.T])]) * Ts
+        V = np.vstack(
+            [np.hstack([-A, G@self.Q_err@G.T]),
+            np.hstack([np.zeros((15,15)),A.T])]
+        )
+        V *= Ts
+        
         assert V.shape == (
-            30,
-            30,
+           30,
+           30,
         ), f"ESKF.discrete_error_matrices: Van Loan matrix shape incorrect {omega.shape}"
-        
         VanLoanMatrix = la.expm(V)  # This can be slow...
-        # Taylor expansion for fastness
-        #VanLoanMatrix = np.eye(30) + V + 1/2 * V@V
-        
-        #Extract according to Theorem 4.5.2
-        Ad = VanLoanMatrix[15:,15:]
+
+        Ad = VanLoanMatrix[15:, 15:].T
         GQGd = Ad @ VanLoanMatrix[0:15,15:]
 
         assert Ad.shape == (
@@ -326,7 +324,7 @@ class ESKF:
 
         Ad, GQGd = self.discrete_error_matrices(x_nominal, acceleration, omega, Ts)
 
-        P_predicted = Ad @ P @ Ad.T + GQGd #Taken from the Kalman filter alg. 1
+        P_predicted = Ad @ P @ Ad.T + GQGd # Taken from the Kalman filter alg. 1
 
         assert P_predicted.shape == (
             15,
@@ -422,17 +420,13 @@ class ESKF:
         ), f"ESKF.inject: delta_x shape incorrect {delta_x.shape}"
         assert P.shape == (15, 15), f"ESKF.inject: P shape incorrect {P.shape}"
 
-        ### Useful concatenation of indices
-        # All injection indices, minus the attitude
-        INJ_IDX = POS_IDX + VEL_IDX + ACC_BIAS_IDX + GYRO_BIAS_IDX
-        # All error indices, minus the attitude
-        DTX_IDX = POS_IDX + VEL_IDX + ERR_ACC_BIAS_IDX + ERR_GYRO_BIAS_IDX
-
         x_injected = x_nominal.copy()
-        x_injected[0:6] += delta_x[0:6]  # Done: Inject error state into nominal state (except attitude / quaternion)
+
+        x_injected[0:6] += delta_x[0:6]  # Inject error state into nominal state (except attitude \ quaternion)
         x_injected[10:] += delta_x[9:]
-        x_injected[6:10] = quaternion_product(x_injected[6:10],np.hstack([1,0.5*delta_x[6:9]])) # Done: Inject attitude according to 10.72
-        x_injected[6:10] = x_injected[6:10]/np.linalg.norm(x_injected[6:10]) # Done: Normalize quaternion
+
+        x_injected[6:10] = quaternion_product(x_injected[6:10],np.hstack([1,0.5*delta_x[6:9]])) # Inject attitude according to 10.72
+        x_injected[6:10] = x_injected[6:10]/np.linalg.norm(x_injected[6:10]) # Normalize quaternion
 
         # Covariance
         G_injected = np.eye(15)  # Done: Compensate for injection in the covariances
@@ -493,9 +487,7 @@ class ESKF:
         
         
         H = np.hstack([np.eye(3),np.zeros((3,12))])# Done: measurement matrix
-        Hx = np.hstack([np.eye(3),np.zeros((3,13))]) # eq 10.80 in book... Needs this to get right dim
-        
-        v = z_GNSS_position - Hx@x_nominal  # Done: innovation
+        v = z_GNSS_position - x_nominal[POS_IDX]  # Done: innovation
         
 
         # leverarm compensation
@@ -665,12 +657,12 @@ class ESKF:
         
         quaternion_conj = np.hstack([q_n[0],-q_n[1:]])  # Done: Conjugate of quaternion
 
-        delta_quaternion = quaternion_product(quaternion_conj,q_true)/np.linalg.norm(quaternion_product(quaternion_conj,q_true))  # Done: Error quaternion
+        delta_quaternion = quaternion_product(quaternion_conj, q_true) # Done: Error quaternion
         delta_theta = 2*delta_quaternion[1:] #Done
 
         # Concatenation of bias indices
         BIAS_IDX = ACC_BIAS_IDX + GYRO_BIAS_IDX
-        delta_bias = x_true[10:]-x_nominal[10:]  # Done: Error biases
+        delta_bias = x_true[BIAS_IDX]-x_nominal[BIAS_IDX]  # Done: Error biases
 
         d_x = np.concatenate((delta_position, delta_velocity, delta_theta, delta_bias))
 
@@ -724,6 +716,3 @@ class ESKF:
         NEES = diff @ la.solve(P, diff)
         assert NEES >= 0, "ESKF._NEES: negative NEES"
         return NEES
-
-
-# %%
