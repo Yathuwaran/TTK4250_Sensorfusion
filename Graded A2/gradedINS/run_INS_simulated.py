@@ -117,8 +117,6 @@ cont_acc_noise_std = 1.167e-3  # (m/s**2)/sqrt(Hz)
 # Discrete sample noise at simulation rate used
 rate_std = 0.5 * cont_gyro_noise_std * np.sqrt(1 / dt)
 acc_std = 0.5 * cont_acc_noise_std * np.sqrt(1 / dt)
-#rate_std =  cont_gyro_noise_std**2 * (1 / dt)
-#acc_std =  cont_acc_noise_std**2 * (1 / dt)
 
 # Bias values
 rate_bias_driving_noise_std = 4e-6 
@@ -134,10 +132,7 @@ p_std = np.array([0.4, 0.40, 0.6])  # Measurement noise
 R_GNSS = np.diag(p_std ** 2)
 
 p_acc = 1e-13
-
 p_gyro = 1e-13
-
-
 
 # %% Estimator
 eskf = ESKF(
@@ -149,7 +144,7 @@ eskf = ESKF(
     p_gyro,
     S_a=S_a, # set the accelerometer correction matrix
     S_g=S_g, # set the gyro correction matrix,
-    debug=False # TODO: False to avoid expensive debug checks, can also be suppressed by calling 'python -O run_INS_simulated.py'
+    debug=False # TODO: False to avoid expensive debug checks
 )
 
 # %% Allocate
@@ -176,11 +171,11 @@ x_pred[0, VEL_IDX] = np.array([20, 0, 0])  # starting at 20 m/s due north
 x_pred[0, 6] = 1  # no initial rotation: nose to North, right to East, and belly down
 
 # These have to be set reasonably to get good results
-P_pred[0][POS_IDX ** 2] = 0.3*np.sqrt(R_GNSS)# TODO
-P_pred[0][VEL_IDX ** 2] = 20*acc_std*np.eye(3)# TODO
-P_pred[0][ERR_ATT_IDX ** 2] = 2*np.pi/180*np.eye(3)# TODO # error rotation vector (not quat)
-P_pred[0][ERR_ACC_BIAS_IDX ** 2] = 0.5*acc_bias_driving_noise_std*np.eye(3)# TODO
-P_pred[0][ERR_GYRO_BIAS_IDX ** 2] = 0.5*rate_bias_driving_noise_std*np.eye(3)# TODO
+P_pred[0][POS_IDX ** 2] = 0.3*np.sqrt(R_GNSS) # TODO
+P_pred[0][VEL_IDX ** 2] = 20*acc_std*np.eye(3) # TODO
+P_pred[0][ERR_ATT_IDX ** 2] = 2*np.pi/180*np.eye(3) # TODO error rotation vector (not quat)
+P_pred[0][ERR_ACC_BIAS_IDX ** 2] = 0.5*acc_bias_driving_noise_std*np.eye(3) # TODO
+P_pred[0][ERR_GYRO_BIAS_IDX ** 2] = 0.5*rate_bias_driving_noise_std*np.eye(3) # TODO
 
 
 # %% Run estimation
