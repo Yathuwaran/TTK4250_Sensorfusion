@@ -306,9 +306,9 @@ axs3[3].plot(t, delta_x[:N, ERR_ACC_BIAS_IDX])
 axs3[3].set(ylabel="Accl bias error [m/s^2]")
 axs3[3].legend(
     [
-        f"$x$ ({np.sqrt(np.mean(delta_x[:N, 12]**2))})",
-        f"$y$ ({np.sqrt(np.mean(delta_x[:N, 13]**2))})",
-        f"$z$ ({np.sqrt(np.mean(delta_x[:N, 14]**2))})",
+        f"$x$ ({np.sqrt(np.mean(delta_x[:N, 9]**2))})",
+        f"$y$ ({np.sqrt(np.mean(delta_x[:N, 10]**2))})",
+        f"$z$ ({np.sqrt(np.mean(delta_x[:N, 11]**2))})",
     ]
 )
 
@@ -335,14 +335,13 @@ axs4[0].plot(t, np.linalg.norm(delta_x[:N, POS_IDX], axis=1))
 axs4[0].set(ylabel="Position error [m]")
 axs4[0].legend(
     [
-        f"Estimation error ({np.sqrt(np.mean(np.sum(delta_x[:N, POS_IDX]**2, axis=1)))})",
-        f"Measurement error ({np.sqrt(np.mean(np.sum((x_true[99:100:N, POS_IDX] - z_GNSS[GNSSk - 1])**2, axis=1)))})",
+        f"Position RMSE ({np.sqrt(np.mean(np.sum(delta_x[:N, POS_IDX]**2, axis=1)))})"
     ]
 )
 
 axs4[1].plot(t, np.linalg.norm(delta_x[:N, VEL_IDX], axis=1))
 axs4[1].set(ylabel="Speed error [m/s]")
-axs4[1].legend([f"RMSE: {np.sqrt(np.mean(np.sum(delta_x[:N, VEL_IDX]**2, axis=0)))}"])
+axs4[1].legend([f"Speed RMSE: {np.sqrt(np.mean(np.sum(delta_x[:N, VEL_IDX]**2, axis=1)))}"])
 
 
 # %% Consistency
@@ -350,7 +349,7 @@ confprob = 0.95
 CI15 = np.array(scipy.stats.chi2.interval(confprob, 15)).reshape((2, 1))
 CI3 = np.array(scipy.stats.chi2.interval(confprob, 3)).reshape((2, 1))
 
-fig5, axs5 = plt.subplots(7, 1, num=5, clear=True)
+fig5, axs5 = plt.subplots(3, 1, num=5, clear=True)
 
 axs5[0].plot(t, (NEES_all[:N]).T)
 axs5[0].plot(np.array([0, N - 1]) * dt, (CI15 @ np.ones((1, 2))).T)
@@ -358,7 +357,7 @@ insideCI = np.mean((CI15[0] <= NEES_all) * (NEES_all <= CI15[1]))
 axs5[0].set(
     title=f"Total NEES ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
-axs5[0].set_ylim([0, 50])
+axs5[0].set_ylim([0, 100])
 
 axs5[1].plot(t, (NEES_pos[0:N]).T)
 axs5[1].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
@@ -366,7 +365,7 @@ insideCI = np.mean((CI3[0] <= NEES_pos) * (NEES_pos <= CI3[1]))
 axs5[1].set(
     title=f"Position NEES ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
-axs5[1].set_ylim([0, 20])
+axs5[1].set_ylim([0, 10])
 
 axs5[2].plot(t, (NEES_vel[0:N]).T)
 axs5[2].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
@@ -374,40 +373,47 @@ insideCI = np.mean((CI3[0] <= NEES_vel) * (NEES_vel <= CI3[1]))
 axs5[2].set(
     title=f"Velocity NEES ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
-axs5[2].set_ylim([0, 20])
+axs5[2].set_ylim([0, 10])
 
-axs5[3].plot(t, (NEES_att[0:N]).T)
-axs5[3].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
+
+fig6, axs6 = plt.subplots(3, 1, num=6, clear=True)
+
+axs6[0].plot(t, (NEES_att[0:N]).T)
+axs6[0].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
 insideCI = np.mean((CI3[0] <= NEES_att) * (NEES_att <= CI3[1]))
-axs5[3].set(
+axs6[0].set(
     title=f"Attitude NEES ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
-axs5[3].set_ylim([0, 20])
+axs6[0].set_ylim([-5, 50])
 
-axs5[4].plot(t, (NEES_accbias[0:N]).T)
-axs5[4].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
+axs6[1].plot(t, (NEES_accbias[0:N]).T)
+axs6[1].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
 insideCI = np.mean((CI3[0] <= NEES_accbias) * (NEES_accbias <= CI3[1]))
-axs5[4].set(
+axs6[1].set(
     title=f"Accelerometer NEES ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
-axs5[4].set_ylim([0, 20])
+axs6[1].set_ylim([-1, 10])
 
-axs5[5].plot(t, (NEES_gyrobias[0:N]).T)
-axs5[5].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
+axs6[2].plot(t, (NEES_gyrobias[0:N]).T)
+axs6[2].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
 insideCI = np.mean((CI3[0] <= NEES_gyrobias) * (NEES_gyrobias <= CI3[1]))
-axs5[5].set(
+axs6[2].set(
     title=f"Gyro bias NEES ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
-axs5[5].set_ylim([0, 20])
+axs6[2].set_ylim([0, 20])
 
-axs5[6].plot(NIS[:GNSSk])
-axs5[6].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
+
+fig7, axs7 = plt.subplots(1, 1, num=7, clear=True)
+
+axs7.plot(NIS[:GNSSk])
+axs7.plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
 insideCI = np.mean((CI3[0] <= NIS) * (NIS <= CI3[1]))
-axs5[6].set(
+axs7.set(
     title=f"NIS ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
-axs5[6].set_ylim([0, 20])
+axs7.set_ylim([-1, 10])
 
+'''
 # boxplot
 fig6, axs6 = plt.subplots(1, 3)
 
@@ -425,6 +431,7 @@ gauss_compare_3  = np.sum(np.random.randn(3, N)**2, axis=0)
 axs6[2].boxplot([NEES_pos[0:N].T, NEES_vel[0:N].T, NEES_att[0:N].T, NEES_accbias[0:N].T, NEES_gyrobias[0:N].T, gauss_compare_3], notch=True)
 axs6[2].legend(['NEES pos', 'NEES vel', 'NEES att', 'NEES accbias', 'NEES gyrobias', 'gauss (3 dim)'])
 plt.grid()
+'''
 
 
 # %%
