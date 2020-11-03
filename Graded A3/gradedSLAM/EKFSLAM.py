@@ -292,7 +292,7 @@ class EKFSLAM:
             # Unsure aout this one
             lmnew[inds] = Rbody @ (p2c(zj[0], zj[1]) + sensor_offset_world) + eta[0:2]# TODO, calculate position of new landmark in world frame
             
-            Gx[inds, :2] = np.eye(2)
+            Gx[inds, :2] = I2
             Gx[inds, 2] = zj[0] * np.array([- np.sin(zj[1]+eta[2]), np.cos(zj[1]+eta[2])]) + sensor_offset_world_der
 
             Gz = rot @ np.diag([1, zj[0]])
