@@ -167,17 +167,20 @@ class EKFSLAM:
         ## reshape map (2, #landmarks), m[:, j] is the jth landmark
         m = eta[3:].reshape((-1, 2)).T
 
-        Rot = rotmat2d(-x[2])
+        Rot = rotmat2d(-x[2]) #Rot from world to body
 
         # None as index ads an axis with size 1 at that position.
         # Numpy broadcasts size 1 dimensions to any size when needed
-        delta_m = # TODO, relative position of landmark to sensor on robot in world frame
+        delta_m = m-x[:2] # Done, relative position of landmark to sensor on robot in world frame
 
-        zpredcart = # TODO, predicted measurements in cartesian coordinates, beware sensor offset for VP
+        zpredcart = Rot@delta_m - self.sensor_offset  # Done, predicted measurements in cartesian coordinates, beware sensor offset for VP
+        zpred_r = np.zeros(len(m[0]))
+        zpred_theta = np.zeros((len(m[0]))
 
-        zpred_r = # TODO, ranges
-        zpred_theta = # TODO, bearings
-        zpred = # TODO, the two arrays above stacked on top of each other vertically like 
+        for i in range(len[m[0]]):
+            zpred_r[i] = la.norm(delta_m[:,i]) # Done, ranges
+            zpred_theta[i] = np.atan2(zpredcart[0,i],zpredcart[1,i]) # Done, bearings
+        zpred = np.vstack((zpred_r,zpred_theta))# Done, the two arrays above stacked on top of each other vertically like 
         # [ranges; 
         #  bearings]
         # into shape (2, #lmrk)
@@ -211,13 +214,13 @@ class EKFSLAM:
 
         Rot = rotmat2d(x[2])
 
-        delta_m = # TODO, relative position of landmark to robot in world frame. m - rho that appears in (11.15) and (11.16)
+        delta_m = m - x[:2] # Done, relative position of landmark to robot in world frame. m - rho that appears in (11.15) and (11.16)
 
-        zc = # TODO, (2, #measurements), each measured position in cartesian coordinates like
+        zc = delta_m - Rot@self.sensor_offset # Done, (2, #measurements), each measured position in cartesian coordinates like
         # [x coordinates;
         #  y coordinates]
 
-        zpred = # TODO (2, #measurements), predicted measurements, like
+        zpred = self.h(eta) # Done (2, #measurements), predicted measurements, like
         # [ranges;
         #  bearings]
         zr = # TODO, ranges
