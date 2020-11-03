@@ -3,7 +3,7 @@ import numpy as np
 from scipy.linalg import block_diag
 import scipy.linalg as la
 from JCBB import JCBB
-from utils import rotmat2d, p2c
+from utils import rotmat2d, p2c, wrapToPi
 # import line_profiler
 # import atexit
 
@@ -175,9 +175,9 @@ class EKFSLAM:
 
         zpredcart = Rot@delta_m - self.sensor_offset  # Done, predicted measurements in cartesian coordinates, beware sensor offset for VP
         zpred_r = np.zeros(len(m[0]))
-        zpred_theta = np.zeros((len(m[0]))
+        zpred_theta = np.zeros((len(m[0])))
 
-        for i in range(len[m[0]]):
+        for i in range(len(m[0])):
             zpred_r[i] = la.norm(delta_m[:,i]) # Done, ranges
             zpred_theta[i] = np.atan2(zpredcart[0,i],zpredcart[1,i]) # Done, bearings
         zpred = np.vstack((zpred_r,zpred_theta))# Done, the two arrays above stacked on top of each other vertically like 
@@ -281,7 +281,7 @@ class EKFSLAM:
 
         Gx = np.empty((numLmk * 2, 3))
         Rall = np.zeros((numLmk * 2, numLmk * 2))
-        Rbody = rotmat2d(eta(3));
+        Rbody = rotmat2d(eta[2]);
 
         I2 = np.eye(2) # Preallocate, used for Gx
         sensor_offset_world = rotmat2d(eta[2]) @ self.sensor_offset # For transforming landmark position into world frame
@@ -306,7 +306,7 @@ class EKFSLAM:
 
         assert len(lmnew) % 2 == 0, "SLAM.add_landmark: lmnew not even length"
         etaadded = np.append(eta, lmnew)# TODO, append new landmarks to state vector
-        Padded = la.block_diag([P, Gx@P[0:3, 0:3]@Gx.T] + Rall)# TODO, block diagonal of P_new, see problem text in 1g) in graded assignment 3
+        Padded = la.block_diag(P, Gx@P[0:3, 0:3]@Gx.T + Rall)# TODO, block diagonal of P_new, see problem text in 1g) in graded assignment 3
         Padded[n:, :n] = P[:,0:3] @ Gx.T# TODO, top right corner of P_new
         Padded[:n, n:] = Padded[n:, :n].T # TODO, transpose of above. Should yield the same as calcualion, but this enforces symmetry and should be cheaper
 
@@ -422,7 +422,7 @@ class EKFSLAM:
             else:
                 # Create the associated innovation
                 v = za.ravel() - zpred  # za: 2D -> flat
-                v[1::2] = utils.wrapToPi(v[1::2])
+                v[1::2] = wrapToPi(v[1::2])
 
                 # Kalman mean update
                 S_cho_factors = la.cho_factor(Sa) # Optional, used in places for S^-1, see scipy.linalg.cho_factor and scipy.linalg.cho_solve
@@ -483,7 +483,7 @@ class EKFSLAM:
         assert x_gt.shape == (3,), f"EKFSLAM.NEES: x_gt shape incorrect {x_gt.shape}"
 
         d_x = x - x_gt
-        d_x[2] = utils.wrapToPi(d_x[2])
+        d_x[2] = wrapToPi(d_x[2])
         assert (
             -np.pi <= d_x[2] <= np.pi
         ), "EKFSLAM.NEES: error heading must be between (-pi, pi)"
