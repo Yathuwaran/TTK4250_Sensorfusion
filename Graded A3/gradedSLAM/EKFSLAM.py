@@ -223,7 +223,7 @@ class EKFSLAM:
         zpred = self.h(eta) # Done (2, #measurements), predicted measurements, like
         # [ranges;
         #  bearings]
-        zr = # TODO, ranges
+        zr = zpred.reshape(-1,2).T[0] # Done, ranges
 
         Rpihalf = rotmat2d(np.pi / 2)
 
