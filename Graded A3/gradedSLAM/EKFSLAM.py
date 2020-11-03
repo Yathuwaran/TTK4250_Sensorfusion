@@ -244,6 +244,11 @@ class EKFSLAM:
             inds = slice(ind, ind + 2)  # the inds slice for the ith landmark into H
 
             # TODO: Set H or Hx and Hm here
+            Hm[inds, inds] = 1 / la.norm(delta_m) ** 2 @ np.array([
+                la.norm(delta_m) * delta_m.T, 
+                delta_m.T @ Rpihalf
+            ])
+            Hx[inds,:] = np.hstack((Hm[inds, inds], np.array([0,1]).reshape(2,1)))
 
         # TODO: You can set some assertions here to make sure that some of the structure in H is correct
         return H
