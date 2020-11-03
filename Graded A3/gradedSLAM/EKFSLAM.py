@@ -2,10 +2,6 @@ from typing import Tuple
 import numpy as np
 from scipy.linalg import block_diag
 import scipy.linalg as la
-<<<<<<< HEAD
-=======
-from utils import rotmat2d, wrapToPi
->>>>>>> def16e1295dba4e1d9fd215f49034057b5a0da1a
 from JCBB import JCBB
 from utils import rotmat2d, p2c
 # import line_profiler
@@ -289,19 +285,12 @@ class EKFSLAM:
             zj = z[inds]
 
             rot = rotmat2d(zj[1] + eta[2]) # TODO, rotmat in Gz
-<<<<<<< HEAD
 
             # Unsure aout this one
             lmnew[inds] = Rbody @ (p2c(zj[0], zj[1]) + sensor_offset_world) + eta[0:2]# TODO, calculate position of new landmark in world frame
             
             Gx[inds, :2] = np.eye(2)
             Gx[inds, 2] = zj[0] * np.array([- np.sin(zj[1]+eta[2]), np.cos(zj[1]+eta[2])]) + sensor_offset_world_der
-=======
-            lmnew[inds] = R# TODO, calculate position of new landmark in world frame
-            
-            Gx[inds, :2] = # TODO
-            Gx[inds, 2] = # TODO
->>>>>>> def16e1295dba4e1d9fd215f49034057b5a0da1a
 
             Gz = rot @ np.diag([1, zj[0]])
 
