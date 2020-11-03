@@ -94,6 +94,7 @@ loaded_data = scipy.io.loadmat(filename_to_load)
 
 S_a = loaded_data["S_a"]
 S_g = loaded_data["S_g"]
+
 lever_arm = loaded_data["leverarm"].ravel()
 timeGNSS = loaded_data["timeGNSS"].ravel()
 timeIMU = loaded_data["timeIMU"].ravel()
