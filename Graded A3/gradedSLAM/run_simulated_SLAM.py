@@ -102,7 +102,7 @@ R = np.diag([4e-2, 4e-2]) ** 2 #TODO
 doAsso = True
 
 JCBBalphas = np.array(
-    [0.000001, 0.000001] # TODO Find a way to choose this
+    [0.5, 0.5] # TODO Find a way to choose this
 )  # first is for joint compatibility, second is individual
 # these can have a large effect on runtime either through the number of landmarks created
 # or by the size of the association search space.
@@ -141,7 +141,7 @@ N = K
 
 print("starting sim (" + str(N) + " iterations)")
 
-for k, z_k in tqdm(enumerate(z[:N])):
+for k, z_k in enumerate(z[:N]):#tqdm(enumerate(z[:N])):
 
     eta_hat[k], P_hat[k], NIS[k], a[k] = slam.update(eta_pred[k], P_pred[k], z_k) # update
 

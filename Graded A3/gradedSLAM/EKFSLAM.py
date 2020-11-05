@@ -219,6 +219,9 @@ class EKFSLAM:
         # you will not detect (the maximum range should be available from the data).
         # But keep it simple to begin with.
 
+        zpred = self.h(eta) # Done (2, #measurements), predicted measurements, like [ranges; bearings]
+
+        
         # Allocate H and set submatrices as memory views into H
         # You may or may not want to do this like this
         H = np.zeros((2 * numM, 3 + 2 * numM)) # TODO, see eq (11.15), (11.16), (11.17)
@@ -238,9 +241,6 @@ class EKFSLAM:
             # [x coordinates;
             #  y coordinates]
 
-            zpred = self.h(eta) # Done (2, #measurements), predicted measurements, like
-            # [ranges;
-            #  bearings]
             zr = zpred.reshape(-1,2).T[0] # Done, ranges
 
             # TODO: Set H or Hx and Hm here
@@ -425,8 +425,8 @@ class EKFSLAM:
                 v[1::2] = wrapToPi(v[1::2])
 
                 # Kalman mean update
-                S_cho_factors = la.cho_factor(Sa) # Optional, used in places for S^-1, see scipy.linalg.cho_factor and scipy.linalg.cho_solve
-                W = P @ H.T @ la.cho_solve(S_cho_factors, [1, 1]) # TODO Might need to transpose unit vector, or simplyt use np.inv(S)
+                #S_cho_factors = la.cho_factor(Sa) # Optional, used in places for S^-1, see scipy.linalg.cho_factor and scipy.linalg.cho_solve
+                W = P @ H.T @ la.inv(Sa) #la.cho_solve(S_cho_factors, np.eye(Sa.shape[0])) # TODO Might need to transpose unit vector, or simplyt use np.inv(S)
                 etaupd = eta + W @ v
 
                 # Kalman cov update: use Joseph form for stability
