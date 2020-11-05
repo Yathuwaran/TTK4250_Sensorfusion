@@ -43,12 +43,12 @@ class EKFSLAM:
             the predicted state
         """
         head_wrap = wrapToPi(x[2])
-        xpred = np.zeros((3,1))
+        xpred = np.array([0,0,0])
         xpred[0] = x[0] + u[0]*np.cos(head_wrap)-u[1]*np.sin(head_wrap)
         xpred[1] = x[1] + u[0]*np.sin(head_wrap)+u[1]*np.cos(head_wrap)
         xpred[2] = wrapToPi(xpred[2]+u[2]) # Done, eq (11.7). Should wrap heading angle between (-pi, pi), see utils.wrapToPi
 
-        assert xpred.shape == (3,1), "EKFSLAM.f: wrong shape for xpred"
+        assert xpred.shape == (3,), "EKFSLAM.f: wrong shape for xpred"
         return xpred
 
     def Fx(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
@@ -88,7 +88,7 @@ class EKFSLAM:
         np.ndarray
             The Jacobian of f wrt. u.
         """
-        Fu = np.array([[np.cos(x[2], -np.sin(x[2]), 0)],
+        Fu = np.array([[np.cos(x[2]), -np.sin(x[2]), 0],
                        [np.sin(x[2]), np.cos(x[2]), 0],
                        [0,              0,          1]])  # Done, eq (11.14)
 
@@ -171,19 +171,19 @@ class EKFSLAM:
 
         # None as index ads an axis with size 1 at that position.
         # Numpy broadcasts size 1 dimensions to any size when needed
-        delta_m = m-x[:2] # Done, relative position of landmark to sensor on robot in world frame
 
-        zpredcart = Rot@delta_m - self.sensor_offset  # Done, predicted measurements in cartesian coordinates, beware sensor offset for VP
-        zpred_r = np.zeros(len(m[0]))
-        zpred_theta = np.zeros((len(m[0])))
+        #zpred_r = np.zeros(len(m[0]))
+        #zpred_theta = np.zeros((len(m[0])))
+
+        zpred = np.zeros(2*len(m[0]))
 
         for i in range(len(m[0])):
-            zpred_r[i] = la.norm(delta_m[:,i]) # Done, ranges
-            zpred_theta[i] = np.atan2(zpredcart[0,i],zpredcart[1,i]) # Done, bearings
-        zpred = np.vstack((zpred_r,zpred_theta))# Done, the two arrays above stacked on top of each other vertically like 
-        # [ranges; 
-        #  bearings]
-        # into shape (2, #lmrk)
+            m_coord = np.array([m[0][i], m[1][i]])
+            delta_m = m_coord - x[:2]
+            zpredcart = Rot@delta_m - self.sensor_offset  # Done, predicted measurements in cartesian coordinates, beware sensor offset for VP
+            zpred[2*i-1] = la.norm(delta_m) # Done, ranges
+            zpred[2*i] = np.arctan2(zpredcart[0],zpredcart[1]) # Done, bearings
+        
 
         zpred = zpred.T.ravel() # stack measurements along one dimension, [range1 bearing1 range2 bearing2 ...]
 
@@ -213,18 +213,6 @@ class EKFSLAM:
         numM = m.shape[1]
 
         Rot = rotmat2d(x[2])
-
-        delta_m = m - x[:2] # Done, relative position of landmark to robot in world frame. m - rho that appears in (11.15) and (11.16)
-
-        zc = delta_m - Rot@self.sensor_offset # Done, (2, #measurements), each measured position in cartesian coordinates like
-        # [x coordinates;
-        #  y coordinates]
-
-        zpred = self.h(eta) # Done (2, #measurements), predicted measurements, like
-        # [ranges;
-        #  bearings]
-        zr = zpred.reshape(-1,2).T[0] # Done, ranges
-
         Rpihalf = rotmat2d(np.pi / 2)
 
         # In what follows you can be clever and avoid making this for all the landmarks you _know_
@@ -238,13 +226,25 @@ class EKFSLAM:
         Hm = H[:, 3:]  # slice view, setting elements of Hm will set H as well
 
         # proposed way is to go through landmarks one by one
-        jac_z_cb = -np.eye(2, 3)  # preallocate and update this for some speed gain if looping
+        #jac_z_cb = -np.eye(2, 3)  # preallocate and update this for some speed gain if looping
         for i in range(numM):  # But this whole loop can be vectorized
             ind = 2 * i # starting postion of the ith landmark into H
             inds = slice(ind, ind + 2)  # the inds slice for the ith landmark into H
+            
+            m_coord = np.array([m[0][i], m[1][i]])
+            delta_m = m_coord - x[:2]
+
+            zc = delta_m - Rot@self.sensor_offset # Done, (2, #measurements), each measured position in cartesian coordinates like
+            # [x coordinates;
+            #  y coordinates]
+
+            zpred = self.h(eta) # Done (2, #measurements), predicted measurements, like
+            # [ranges;
+            #  bearings]
+            zr = zpred.reshape(-1,2).T[0] # Done, ranges
 
             # TODO: Set H or Hx and Hm here
-            Hm[inds, inds] = 1 / la.norm(delta_m) ** 2 @ np.array([
+            Hm[inds, inds] = 1 / la.norm(delta_m) ** 2 * np.array([
                 la.norm(delta_m) * delta_m.T, 
                 delta_m.T @ Rpihalf
             ])
@@ -404,7 +404,7 @@ class EKFSLAM:
             H = self.H(eta)
 
             # Note: np.kron() might be slow! Could solve this by indexing smartly
-            S = H @ P @ H.T + np.kron(np.eye(numLmk), self.R),
+            S = H @ P @ H.T + np.kron(np.eye(numLmk), self.R)
             assert (
                 S.shape == zpred.shape * 2
             ), "EKFSLAM.update: wrong shape on either S or zpred"
