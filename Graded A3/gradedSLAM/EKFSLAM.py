@@ -48,7 +48,7 @@ class EKFSLAM:
         xpred[1] = x[1] + u[0]*np.sin(head_wrap)+u[1]*np.cos(head_wrap)
         xpred[2] = wrapToPi(xpred[2]+u[2]) # Done, eq (11.7). Should wrap heading angle between (-pi, pi), see utils.wrapToPi
 
-        assert xpred.shape == (3,), "EKFSLAM.f: wrong shape for xpred"
+        assert xpred.shape == (3,1), "EKFSLAM.f: wrong shape for xpred"
         return xpred
 
     def Fx(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
@@ -307,7 +307,7 @@ class EKFSLAM:
         assert len(lmnew) % 2 == 0, "SLAM.add_landmark: lmnew not even length"
         etaadded = np.append(eta, lmnew)# TODO, append new landmarks to state vector
         Padded = la.block_diag(P, Gx@P[0:3, 0:3]@Gx.T + Rall)# TODO, block diagonal of P_new, see problem text in 1g) in graded assignment 3
-        Padded[n:, :n] = P[:,0:3] @ Gx.T# TODO, top right corner of P_new
+        Padded[n:, :n] = Gx@P[:3, :]# TODO, top right corner of P_new
         Padded[:n, n:] = Padded[n:, :n].T # TODO, transpose of above. Should yield the same as calcualion, but this enforces symmetry and should be cheaper
 
         assert (
