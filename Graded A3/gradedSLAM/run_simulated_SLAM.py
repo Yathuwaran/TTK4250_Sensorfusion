@@ -96,13 +96,13 @@ K = len(z)
 M = len(landmarks)
 
 # %% Initilize
-Q = np.diag([0.520e-1, 0.520e-1, 0.012]) ** 2 # TODO
-R = np.diag([4e-2, 4e-2]) ** 2 #TODO
+Q = np.diag([0.5, 0.5, 3*np.pi/180])**2 # TODO
+R = np.diag([0.06, 2*np.pi/180])**2 # TODO
 
 doAsso = True
 
 JCBBalphas = np.array(
-    [0.5, 0.5] # TODO Find a way to choose this
+    [0.05, 0.05] # TODO Find a way to choose this
 )  # first is for joint compatibility, second is individual
 # these can have a large effect on runtime either through the number of landmarks created
 # or by the size of the association search space.
@@ -131,17 +131,17 @@ P_pred[0] = np.zeros((3, 3))  # we also say that we are 100% sure about that
 # %% Set up plotting
 # plotting
 
-doAssoPlot = False
+doAssoPlot = True
 playMovie = True
 if doAssoPlot:
     figAsso, axAsso = plt.subplots(num=1, clear=True)
 
 # %% Run simulation
-N = K
+N = 50
 
 print("starting sim (" + str(N) + " iterations)")
 
-for k, z_k in enumerate(z[:N]):#tqdm(enumerate(z[:N])):
+for k, z_k in tqdm(enumerate(z[:N])):
 
     eta_hat[k], P_hat[k], NIS[k], a[k] = slam.update(eta_pred[k], P_pred[k], z_k) # update
 
@@ -184,7 +184,7 @@ for k, z_k in enumerate(z[:N]):#tqdm(enumerate(z[:N])):
 print("sim complete")
 
 pose_est = np.array([x[:3] for x in eta_hat[:N]])
-lmk_est = [eta_hat_k[3:].reshape(-1, 2) for eta_hat_k in eta_hat]
+lmk_est = [eta_hat_k[3:].reshape(-1, 2) for eta_hat_k in eta_hat[:N]]
 lmk_est_final = lmk_est[N - 1]
 
 np.set_printoptions(precision=4, linewidth=100)
@@ -203,12 +203,7 @@ fig2, ax2 = plt.subplots(num=2, clear=True)
 # landmarks
 ax2.scatter(*landmarks.T, c="r", marker="^")
 ax2.scatter(*lmk_est_final.T, c="b", marker=".")
-# Draw covariance ellipsis of measurements
-for l, lmk_l in enumerate(lmk_est_final):
-    idxs = slice(3 + 2 * l, 3 + 2 * l + 2)
-    rI = P_hat[N - 1][idxs, idxs]
-    el = ellipse(lmk_l, rI, 5, 200)
-    ax2.plot(*el.T, "b")
+# Draw covariance ellipsis of measurements 
 
 ax2.plot(*poseGT.T[:2], c="r", label="gt")
 ax2.plot(*pose_est.T[:2], c="g", label="est")
