@@ -1,6 +1,6 @@
 import numpy as np
 from functools import lru_cache
-import profilehooks
+#import profilehooks
 from scipy.stats import chi2
 import scipy.linalg as la
 import utils
@@ -75,7 +75,7 @@ def JCBBrec(z, zbar, S, alpha1, g2, j, a, ic, abest):
 
 #   @profilehooks.profile(sort="cumulative")
 def individualCompatibility(z, zbar, S):
-    #nz = z.shape[0] // 2
+    nz = z.shape[0] // 2
     nz_bar = zbar.shape[0] // 2
 
     assert z.shape[0] % 2 == 0, "JCBB.individualCompatibility: z must have even lenght"

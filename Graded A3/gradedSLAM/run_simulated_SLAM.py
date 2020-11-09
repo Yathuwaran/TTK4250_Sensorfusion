@@ -96,14 +96,16 @@ K = len(z)
 M = len(landmarks)
 
 # %% Initilize
-Q = np.diag([0.5, 0.5, 3*np.pi/180])**2 # TODO
-R = np.diag([0.06, 2*np.pi/180])**2 # TODO
+Q = np.array([[(7e-2)**2,0,0],
+            [0,(7e-2)**2,0],
+            [0,0,(2e-2)**2]])*1e-1# TODO
+
+R = np.array([[(4e-2)**2, 0],
+            [0, (2e-2)**2]])*2e0# TODO
 
 doAsso = True
 
-JCBBalphas = np.array(
-    [0.05, 0.05] # TODO Find a way to choose this
-)  # first is for joint compatibility, second is individual
+JCBBalphas = np.array([1e-10, 1e-10])  # first is for joint compatibility, second is individual
 # these can have a large effect on runtime either through the number of landmarks created
 # or by the size of the association search space.
 
@@ -131,15 +133,15 @@ P_pred[0] = np.zeros((3, 3))  # we also say that we are 100% sure about that
 # %% Set up plotting
 # plotting
 
-doAssoPlot = True
+doAssoPlot = False
 playMovie = True
 if doAssoPlot:
     figAsso, axAsso = plt.subplots(num=1, clear=True)
 
 # %% Run simulation
-N = 50
+N = 110
 
-print("starting sim (" + str(N) + " iterations)")
+#print("starting sim (" + str(N) + " iterations)")
 
 for k, z_k in tqdm(enumerate(z[:N])):
 
