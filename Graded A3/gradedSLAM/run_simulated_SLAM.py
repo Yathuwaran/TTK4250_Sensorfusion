@@ -1,14 +1,16 @@
 # %% Imports
-from typing import List, Optional
+import matplotlib
 
-from scipy.io import loadmat
+import matplotlib.pyplot as plt
 import numpy as np
 
-import matplotlib
-import matplotlib.pyplot as plt
+from scipy.io import loadmat
 from matplotlib import animation
 from scipy.stats import chi2
-import utils
+from EKFSLAM import EKFSLAM
+from plotting import ellipse
+from utils import wrapToPi
+from typing import List, Optional
 
 try:
     from tqdm import tqdm
@@ -71,21 +73,9 @@ except Exception as e:
         }
     )
 
-
-
-from EKFSLAM import EKFSLAM
-from plotting import ellipse
-
 # %% Load data
 simSLAM_ws = loadmat("simulatedSLAM")
 
-## NB: this is a MATLAB cell, so needs to "double index" to get out the measurements of a time step k:
-#
-# ex:
-#
-# z_k = z[k][0] # z_k is a (2, m_k) matrix with columns equal to the measurements of time step k
-#
-##
 z = [zk.T for zk in simSLAM_ws["z"].ravel()]
 
 landmarks = simSLAM_ws["landmarks"].T
@@ -96,16 +86,20 @@ K = len(z)
 M = len(landmarks)
 
 # %% Initilize
-Q = np.array([[(7e-2)**2,0,0],
-            [0,(7e-2)**2,0],
-            [0,0,(2e-2)**2]])*1e-1# TODO
+Q = (np.diag([7, 7, 2])**2) * 1e-5  # TODO TUNE
 
-R = np.array([[(4e-2)**2, 0],
-            [0, (2e-2)**2]])*2e0# TODO
+#           [[(7e-2)**2,0,0],
+#            [0,(7e-2)**2,0],
+#            [0,0,(2e-2)**2]])*1e-1
+
+R = (np.diag([5.7, 2.8])**2) * 1e-4# TODO TUNE
+#           [[(4e-2)**2, 0],
+#           [0, (2e-2)**2]])*2
+
 
 doAsso = True
 
-JCBBalphas = np.array([1e-10, 1e-10])  # first is for joint compatibility, second is individual
+JCBBalphas = np.array([1e-3, 1e-3])  # first is for joint compatibility, second is individual
 # these can have a large effect on runtime either through the number of landmarks created
 # or by the size of the association search space.
 
@@ -124,7 +118,7 @@ CInorm = np.zeros((K, 2))
 NEESes = np.zeros((K, 3))
 
 # For consistency testing
-alpha = 0.05
+alpha = 0.9
 
 # init
 eta_pred[0] = poseGT[0]  # we start at the correct position for reference
@@ -139,7 +133,7 @@ if doAssoPlot:
     figAsso, axAsso = plt.subplots(num=1, clear=True)
 
 # %% Run simulation
-N = 110
+N = K
 
 #print("starting sim (" + str(N) + " iterations)")
 

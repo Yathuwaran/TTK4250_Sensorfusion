@@ -43,7 +43,7 @@ class EKFSLAM:
             the predicted state
         """
         
-        xpred = np.array([0,0,0])
+        xpred = np.zeros((3,))
 
         xpred[0] = x[0] + u[0]*np.cos(x[2])-u[1]*np.sin(x[2])
         xpred[1] = x[1] + u[0]*np.sin(x[2])+u[1]*np.cos(x[2])
