@@ -128,7 +128,7 @@ P_pred[0] = np.zeros((3, 3))  # we also say that we are 100% sure about that
 # plotting
 
 doAssoPlot = False
-playMovie = True
+playMovie = False
 if doAssoPlot:
     figAsso, axAsso = plt.subplots(num=1, clear=True)
 
@@ -248,7 +248,7 @@ scalings = np.array([1, 180/np.pi])
 fig5, ax5 = plt.subplots(nrows=2, ncols=1, figsize=(7, 5), num=5, clear=True, sharex=True)
 
 pos_err = np.linalg.norm(pose_est[:N,:2] - poseGT[:N,:2], axis=1)
-heading_err = np.abs(utils.wrapToPi(pose_est[:N,2] - poseGT[:N,2]))
+heading_err = np.abs(wrapToPi(pose_est[:N,2] - poseGT[:N,2]))
 
 errs = np.vstack((pos_err, heading_err))
 
