@@ -87,14 +87,7 @@ M = len(landmarks)
 
 # %% Initilize
 Q = (np.diag([7, 7, 2])**2) * 1e-5  # TODO TUNE
-
-#           [[(7e-2)**2,0,0],
-#            [0,(7e-2)**2,0],
-#            [0,0,(2e-2)**2]])*1e-1
-
 R = (np.diag([5.7, 2.8])**2) * 1e-4# TODO TUNE
-#           [[(4e-2)**2, 0],
-#           [0, (2e-2)**2]])*2
 
 
 doAsso = True
@@ -140,7 +133,6 @@ N = K
 for k, z_k in tqdm(enumerate(z[:N])):
 
     eta_hat[k], P_hat[k], NIS[k], a[k] = slam.update(eta_pred[k], P_pred[k], z_k) # update
-
     if k < K - 1:
         eta_pred[k + 1], P_pred[k + 1] = slam.predict(eta_hat[k], P_hat[k], odometry[k]) # predict
 
@@ -201,10 +193,11 @@ ax2.scatter(*landmarks.T, c="r", marker="^")
 ax2.scatter(*lmk_est_final.T, c="b", marker=".")
 # Draw covariance ellipsis of measurements 
 
-ax2.plot(*poseGT.T[:2], c="r", label="gt")
-ax2.plot(*pose_est.T[:2], c="g", label="est")
+ax2.plot(*poseGT.T[:2], c="r", label="Ground truth",linewidth=3)
+ax2.plot(*pose_est.T[:2], c="b", label="Estimate", linestyle='dotted', linewidth=2)
 ax2.plot(*ellipse(pose_est[-1, :2], P_hat[N - 1][:2, :2], 5, 200).T, c="g")
 ax2.set(title="results", xlim=(mins[0], maxs[0]), ylim=(mins[1], maxs[1]))
+ax2.legend()
 ax2.axis("equal")
 ax2.grid()
 
@@ -218,7 +211,7 @@ ax3.plot(CInorm[:N,0], '--')
 ax3.plot(CInorm[:N,1], '--')
 ax3.plot(NISnorm[:N], lw=0.5)
 
-ax3.set_title(f'NIS, {insideCI.mean()*100}% inside CI')
+ax3.set_title(f'NIS, {insideCI.mean()*100}% inside {alpha*100}% CI')
 
 # NEES
 
@@ -232,7 +225,7 @@ for ax, tag, NEES, df in zip(ax4, tags, NEESes.T, dfs):
     ax.plot(np.full(N, CI_NEES[1]), '--')
     ax.plot(NEES[:N], lw=0.5)
     insideCI = (CI_NEES[0] <= NEES) * (NEES <= CI_NEES[1])
-    ax.set_title(f'NEES {tag}: {insideCI.mean()*100}% inside CI')
+    ax.set_title(f'NEES {tag}: {round(insideCI.mean()*100,3)}% inside {alpha*100}% CI')
 
     CI_ANEES = np.array(chi2.interval(alpha, df*N)) / N
     print(f"CI ANEES {tag}: {CI_ANEES}")
