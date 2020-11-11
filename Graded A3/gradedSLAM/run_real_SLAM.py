@@ -106,13 +106,14 @@ b = 0.5  # laser distance to the left of center
 
 car = Car(L, H, a, b)
 
-sigmas = np.array([4,4,1])*1e-2
+sigmas = np.array([4,4,0.6])*1e-2
 CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
 Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
 
 R = (np.array([[5, 0],[0,2]])*1e-2)**2
 
-JCBBalphas = np.array([1e-4, 1e-3])
+JCBBalphas = np.array([1e-6, 1e-7])
+
 
 sensorOffset = np.array([car.a + car.L, car.b])
 doAsso = True
@@ -120,7 +121,7 @@ doAsso = True
 slam = EKFSLAM(Q, R, do_asso=doAsso, alphas=JCBBalphas, sensor_offset=sensorOffset)
 
 # For consistency testing
-alpha = 0.1
+alpha = 0.05
 confidence_prob = 1 - alpha
 
 xupd = np.zeros((mK, 3))
@@ -139,7 +140,7 @@ mk = mk_first
 t = timeOdo[0]
 
 # %%  run
-N = 12000
+N = K
 
 doPlot = False
 
