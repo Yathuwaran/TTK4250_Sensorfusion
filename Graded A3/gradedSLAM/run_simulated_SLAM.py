@@ -24,7 +24,6 @@ except ImportError as e:
 
 # %% plot config check and style setup
 
-
 # to see your plot config
 print(f"matplotlib backend: {matplotlib.get_backend()}")
 print(f"matplotlib config file: {matplotlib.matplotlib_fname()}")
@@ -89,13 +88,12 @@ M = len(landmarks)
 Q = (np.diag([7, 7, 2])**2) * 1e-5  # TODO TUNE
 R = (np.diag([5.7, 2.8])**2) * 1e-4# TODO TUNE
 
+JCBBalphas = np.array([1e-3, 1e-3]) # First is for joint compatibility, second is individual. 
+                                    # These can have a large effect on runtime either through 
+                                    # the number of landmarks created, or by the size of the 
+                                    # association search space.
 
 doAsso = True
-
-JCBBalphas = np.array([1e-3, 1e-3])  # first is for joint compatibility, second is individual
-# these can have a large effect on runtime either through the number of landmarks created
-# or by the size of the association search space.
-
 slam = EKFSLAM(Q, R, do_asso=doAsso, alphas=JCBBalphas)
 
 # allocate
@@ -187,39 +185,38 @@ offsets = ranges * 0.2
 mins -= offsets
 maxs += offsets
 
-fig2, ax2 = plt.subplots(num=2, clear=True)
+fig1, ax1 = plt.subplots(num=1, clear=True)
 # landmarks
-ax2.scatter(*landmarks.T, c="r", marker="^")
-ax2.scatter(*lmk_est_final.T, c="b", marker=".")
+ax1.scatter(*landmarks.T, c="r", marker="^")
+ax1.scatter(*lmk_est_final.T, c="b", marker=".")
 # Draw covariance ellipsis of measurements 
 
-ax2.plot(*poseGT.T[:2], c="r", label="Ground truth",linewidth=3)
-ax2.plot(*pose_est.T[:2], c="b", label="Estimate", linestyle='dotted', linewidth=2)
-ax2.plot(*ellipse(pose_est[-1, :2], P_hat[N - 1][:2, :2], 5, 200).T, c="g")
-ax2.set(title="results", xlim=(mins[0], maxs[0]), ylim=(mins[1], maxs[1]))
-ax2.legend()
-ax2.axis("equal")
-ax2.grid()
+ax1.plot(*poseGT.T[:2], c="r", label="Ground truth",linewidth=3)
+ax1.plot(*pose_est.T[:2], c="b", label="Estimate", linestyle='dotted', linewidth=2)
+ax1.plot(*ellipse(pose_est[-1, :2], P_hat[N - 1][:2, :2], 5, 200).T, c="g")
+ax1.set(title="Results", xlim=(-210, 130), ylim=(-140, 210))
+ax1.legend()
+#ax1.axis("equal")
+ax1.grid()
 
 # %% Consistency
 
 # NIS
 insideCI = (CInorm[:N,0] <= NISnorm[:N]) * (NISnorm[:N] <= CInorm[:N,1])
 
-fig3, ax3 = plt.subplots(num=3, clear=True)
-ax3.plot(CInorm[:N,0], '--')
-ax3.plot(CInorm[:N,1], '--')
-ax3.plot(NISnorm[:N], lw=0.5)
+fig2, ax2 = plt.subplots(num=2, clear=True)
+ax2.plot(CInorm[:N,0], '--')
+ax2.plot(CInorm[:N,1], '--')
+ax2.plot(NISnorm[:N], lw=0.5)
 
-ax3.set_title(f'NIS, {insideCI.mean()*100}% inside {alpha*100}% CI')
+ax2.set_title(f'NIS, {insideCI.mean()*100}% inside {alpha*100}% CI')
 
 # NEES
-
-fig4, ax4 = plt.subplots(nrows=3, ncols=1, figsize=(7, 5), num=4, clear=True, sharex=True)
-tags = ['all', 'pos', 'heading']
+fig3, ax3 = plt.subplots(nrows=3, ncols=1, figsize=(7, 5), num=3, clear=True, sharex=True)
+tags = ['All', 'Position', 'Heading']
 dfs = [3, 2, 1]
 
-for ax, tag, NEES, df in zip(ax4, tags, NEESes.T, dfs):
+for ax, tag, NEES, df in zip(ax3, tags, NEESes.T, dfs):
     CI_NEES = chi2.interval(alpha, df)
     ax.plot(np.full(N, CI_NEES[0]), '--')
     ax.plot(np.full(N, CI_NEES[1]), '--')
@@ -231,27 +228,27 @@ for ax, tag, NEES, df in zip(ax4, tags, NEESes.T, dfs):
     print(f"CI ANEES {tag}: {CI_ANEES}")
     print(f"ANEES {tag}: {NEES.mean()}")
 
-fig4.tight_layout()
+fig3.tight_layout()
 
 # %% RMSE
 
 ylabels = ['m', 'deg']
 scalings = np.array([1, 180/np.pi])
 
-fig5, ax5 = plt.subplots(nrows=2, ncols=1, figsize=(7, 5), num=5, clear=True, sharex=True)
+fig4, ax4 = plt.subplots(nrows=2, ncols=1, figsize=(7, 5), num=4, clear=True, sharex=True)
 
 pos_err = np.linalg.norm(pose_est[:N,:2] - poseGT[:N,:2], axis=1)
 heading_err = np.abs(wrapToPi(pose_est[:N,2] - poseGT[:N,2]))
 
 errs = np.vstack((pos_err, heading_err))
 
-for ax, err, tag, ylabel, scaling in zip(ax5, errs, tags[1:], ylabels, scalings):
+for ax, err, tag, ylabel, scaling in zip(ax4, errs, tags[1:], ylabels, scalings):
     ax.plot(err*scaling)
-    ax.set_title(f"{tag}: RMSE {np.sqrt((err**2).mean())*scaling} {ylabel}")
+    ax.set_title(f"{tag}: RMSE {round(np.sqrt((err**2).mean())*scaling, 4)} {ylabel}")
     ax.set_ylabel(f"[{ylabel}]")
     ax.grid()
 
-fig5.tight_layout()
+fig4.tight_layout()
 
 # %% Movie time
 

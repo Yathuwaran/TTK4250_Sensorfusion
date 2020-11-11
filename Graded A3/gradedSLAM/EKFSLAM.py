@@ -1,15 +1,11 @@
-from typing import Tuple
 import numpy as np
-from scipy.linalg import block_diag
+
 import scipy.linalg as la
+
+from typing import Tuple
+from scipy.linalg import block_diag
 from JCBB import JCBB
 from utils import rotmat2d, p2c, wrapToPi
-# import line_profiler
-# import atexit
-
-# profile = line_profiler.LineProfiler()
-# atexit.register(profile.print_stats)
-
 
 class EKFSLAM:
     def __init__(
@@ -179,7 +175,6 @@ class EKFSLAM:
         zpred_r = np.linalg.norm(zpredcart,axis=0)
         z_pred_theta = np.arctan2(zpredcart[1],zpredcart[0])
         zpred = np.vstack((zpred_r,z_pred_theta))
-        
 
         zpred = zpred.T.ravel() # stack measurements along one dimension, [range1 bearing1 range2 bearing2 ...]
 
@@ -216,20 +211,14 @@ class EKFSLAM:
 
         Rpihalf = rotmat2d(np.pi / 2)
 
-        # In what follows you can be clever and avoid making this for all the landmarks you _know_
-        # you will not detect (the maximum range should be available from the data).
-        # But keep it simple to begin with.
-
         # Allocate H and set submatrices as memory views into H
-        # You may or may not want to do this like this
         H = np.zeros((2 * numM, 3 + 2 * numM)) # TODO, see eq (11.15), (11.16), (11.17)
         Hx = H[:, :3]  # slice view, setting elements of Hx will set H as well
         Hm = H[:, 3:]  # slice view, setting elements of Hm will set H as well
 
-        # proposed way is to go through landmarks one by one
-        jac_z_cb = -np.eye(2, 3)  # preallocate and update this for some speed gain if looping
-        for i in range(numM):  # But this hole loop can be vectorized
-            ind = 2 * i # starting postion of the ith landmark into H
+        jac_z_cb = -np.eye(2, 3) 
+        for i in range(numM): 
+            ind = 2 * i                 # starting postion of the ith landmark into H
             inds = slice(ind, ind + 2)  # the inds slice for the ith landmark into H
             jac_z_cb[:,2] = -Rpihalf @ delta_m[:,i]
 
@@ -281,23 +270,22 @@ class EKFSLAM:
             inds = slice(ind, ind + 2)
             zj = z[inds]
 
-            rot = rotmat2d(zj[1] + eta[2]) # TODO, rotmat in Gz
+            rot = rotmat2d(zj[1] + eta[2]) # DONE, rotmat in Gz
 
-            # Unsure aout this one
-            lmnew[inds] = Rbody @ p2c(zj[0], zj[1]) + sensor_offset_world + eta[0:2]# TODO, calculate position of new landmark in world frame
+            lmnew[inds] = Rbody @ p2c(zj[0], zj[1]) + sensor_offset_world + eta[0:2] # DONE, calculate position of new landmark in world frame
             
             Gx[inds, :2] = I2
             Gx[inds, 2] = zj[0] * rot[:,1] + sensor_offset_world_der
 
             Gz = rot @ np.diag([1, zj[0]])
 
-            Rall[inds, inds] = Gz @ self.R @ Gz.T # TODO, Gz * R * Gz^T, transform measurement covariance from polar to cartesian coordinates
+            Rall[inds, inds] = Gz @ self.R @ Gz.T # DONE, Gz * R * Gz^T, transform measurement covariance from polar to cartesian coordinates
 
         assert len(lmnew) % 2 == 0, "SLAM.add_landmark: lmnew not even length"
-        etaadded = np.append(eta, lmnew)# TODO, append new landmarks to state vector
-        Padded = la.block_diag(P, Gx@P[0:3, 0:3]@Gx.T + Rall)# TODO, block diagonal of P_new, see problem text in 1g) in graded assignment 3
-        Padded[:n, n:] = P[:,:3]@Gx.T# TODO, top right corner of P_new 
-        Padded[n:, :n] = Padded[:n, n:].T # TODO, transpose of above. Should yield the same as calcualion, but this enforces symmetry and should be cheaper
+        etaadded = np.append(eta, lmnew)                        # DONE, append new landmarks to state vector
+        Padded = la.block_diag(P, Gx@P[0:3, 0:3]@Gx.T + Rall)   # DONE, block diagonal of P_new, see problem text in 1g) in graded assignment 3
+        Padded[:n, n:] = P[:,:3]@Gx.T                           # DONE, top right corner of P_new 
+        Padded[n:, :n] = Padded[:n, n:].T                       # DONE, transpose of above.
 
         assert (
             etaadded.shape * 2 == Padded.shape
@@ -391,7 +379,7 @@ class EKFSLAM:
             zpred = self.h(eta)
             H = self.H(eta)
 
-            # Note: np.kron() might be slow! Could solve this by indexing smartly
+            # Note: np.kron() might be slow! 
             S = H @ P @ H.T + np.kron(np.eye(numLmk), self.R)
 
             assert (
@@ -426,12 +414,6 @@ class EKFSLAM:
 
                 # calculate NIS, can use S_cho_factors
                 NIS = v.T @ la.cho_solve(S_cho_factors,v)
-
-                # When tested, remove for speed
-                assert np.allclose(Pupd, Pupd.T), "EKFSLAM.update: Pupd not symmetric"
-                assert np.all(
-                    np.linalg.eigvals(Pupd) > 0
-                ), "EKFSLAM.update: Pupd not positive definite"
 
         else:  # All measurements are new landmarks,
             a = np.full(z.shape[0], -1)
