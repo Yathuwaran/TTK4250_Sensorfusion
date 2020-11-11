@@ -106,13 +106,13 @@ b = 0.5  # laser distance to the left of center
 
 car = Car(L, H, a, b)
 
-sigmas = [0.1, 0.1, 5*np.pi/180]                    # TODO TUNE
+sigmas = np.array([4,4,1])*1e-2
 CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
+Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
 
-Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)   # TODO TUNE
-R = (np.diag([5.7, 2.8])**2) * 1e-4                 # TODO TUNE
+R = (np.array([[5, 0],[0,2]])*1e-2)**2
 
-JCBBalphas = np.array([1e-5, 1e-5])                 # TODO TUNE
+JCBBalphas = np.array([1e-4, 1e-3])
 
 sensorOffset = np.array([car.a + car.L, car.b])
 doAsso = True
@@ -132,14 +132,14 @@ CInorm = np.zeros((mK, 2))
 
 # Initialize state
 eta = np.array([Lo_m[0], La_m[1], 36 * np.pi / 180]) # you might want to tweak these for a good reference
-P = np.zeros((3, 3))
+P = np.diag([5,5,0.1])
 
 mk_first = 1  # first seems to be a bit off in timing
 mk = mk_first
 t = timeOdo[0]
 
 # %%  run
-N = 10000
+N = 12000
 
 doPlot = False
 
@@ -158,9 +158,10 @@ if do_raw_prediction:  # TODO: further processing such as plotting
     odox = np.zeros((K, 3))
     odox[0] = eta
 
+    P_odo = P.copy()
     for k in range(min(N, K - 1)):
         odos[k + 1] = odometry(speed[k + 1], steering[k + 1], 0.025, car)
-        odox[k + 1], _ = slam.predict(odox[k], P, odos[k + 1])
+        odox[k + 1], _ = slam.predict(odox[k], P_odo, odos[k + 1])
 
 for k in tqdm(range(N)):
     if mk < mK - 1 and timeLsr[mk] <= timeOdo[k + 1]:
@@ -258,6 +259,14 @@ ax6.plot(*xupd[mk_first:mk, :2].T)
 ax6.set(
     title=f"Steps {k}, laser scans {mk-1}, landmarks {len(eta[3:])//2},\nmeasurements {z.shape[0]}, num new = {np.sum(a[mk] == -1)}"
 )
+ax6.scatter(
+        Lo_m[timeGps < timeOdo[N - 1]],
+        La_m[timeGps < timeOdo[N - 1]],
+        c="y",
+        marker='.',
+        label="GPS",
+        s = 10,
+    )
 plt.show()
 
 # %%
